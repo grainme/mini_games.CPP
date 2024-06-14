@@ -1,5 +1,5 @@
-
 #include "snake_game.hpp"
+#include "food.hpp"
 #include "snake.hpp"
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
@@ -14,9 +14,11 @@
 #include <vector>
 
 Snake s[100];
+Food food;
+bool gameOver = false;
 
-void SnakeGame::tick() {
-  // update the whole snake position
+void SnakeGame::tick(sf::RenderWindow &window) {
+  // Update the whole snake position
   for (size_t i = s[0].num_pixels; i > 0; i--) {
     s[i].snake_pos(s[i - 1].getX(), s[i - 1].getY());
   }
@@ -40,14 +42,36 @@ void SnakeGame::tick() {
   if (s[0].getY() < 0)
     s[0].snake_pos(s[0].getX(), H - 1);
 
-  score++;
-  updateScore();
+  if (s[0].getX() == food.x && s[0].getY() == food.y) {
+    food.x = rand() % W;
+    food.y = rand() % H;
+    s[0].num_pixels++;
+    score++;
+    updateScore();
+  }
+
+  for (int i = 1; i < s[0].num_pixels; i++) {
+    if (s[0].getX() == s[i].getX() && s[0].getY() == s[i].getY()) {
+      gameOver = true;
+    }
+  }
 }
 
 void SnakeGame::loop_game(sf::RenderWindow &window,
                           std::vector<sf::Sprite> &sprites) {
   sf::Clock clock;
   float timer = 0, delay = 0.1;
+  food.x = 10;
+  food.y = 10;
+
+  // Load game over texture and sprite
+  sf::Texture gameOverTexture;
+  if (!gameOverTexture.loadFromFile("../public/images/game_over.jpg")) {
+    std::cerr << "Image Error: could not load the game over image" << std::endl;
+    return;
+  }
+  sf::Sprite gameOverSprite(gameOverTexture);
+
   while (window.isOpen()) {
     float time = clock.getElapsedTime().asSeconds();
     clock.restart();
@@ -60,49 +84,63 @@ void SnakeGame::loop_game(sf::RenderWindow &window,
       }
     }
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
-      s[0].dir = "LEFT";
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
-      s[0].dir = "UP";
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
-      s[0].dir = "RIGHT";
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
-      s[0].dir = "DOWN";
-    }
-
-    if (timer > delay) {
-      timer = 0;
-      tick();
-    }
-
-    window.clear();
-
-    for (size_t i{0}; i < W; i++) {
-      for (size_t k{0}; k < H; k++) {
-        sprites[0].setPosition(i * SIZE, k * SIZE + TOP_BAR_HEIGHT);
-        window.draw(sprites[0]);
+    if (!gameOver) {
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
+        s[0].dir = "LEFT";
       }
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
+        s[0].dir = "UP";
+      }
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
+        s[0].dir = "RIGHT";
+      }
+      if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
+        s[0].dir = "DOWN";
+      }
+
+      if (timer > delay) {
+        timer = 0;
+        tick(window);
+      }
+
+      window.clear();
+
+      for (size_t i = 0; i < W; i++) {
+        for (size_t k = 0; k < H; k++) {
+          sprites[0].setPosition(i * SIZE, k * SIZE + TOP_BAR_HEIGHT);
+          window.draw(sprites[0]);
+        }
+      }
+
+      for (size_t i = 0; i < s[0].num_pixels; i++) {
+        sprites[2].setPosition(s[i].getX() * SIZE,
+                               s[i].getY() * SIZE + TOP_BAR_HEIGHT);
+        window.draw(sprites[2]);
+      }
+
+      // Draw food at updated position
+      sprites[1].setPosition(food.x * SIZE, food.y * SIZE + TOP_BAR_HEIGHT);
+      window.draw(sprites[1]);
+
+      updateTime();
+      updateSpeed();
+      updateRecord();
+
+      window.draw(scoreText);
+      window.draw(timeText);
+      window.draw(speedText);
+      window.draw(recordText);
+
+      window.display();
+    } else {
+      window.clear();
+      gameOverSprite.setPosition(
+          WIDTH / 2 - gameOverSprite.getLocalBounds().width / 2,
+          HEIGHT / 2 - gameOverSprite.getLocalBounds().height / 2 +
+              TOP_BAR_HEIGHT);
+      window.draw(gameOverSprite);
+      window.display();
     }
-
-    for (size_t i = 0; i < s[0].num_pixels; i++) {
-      sprites[2].setPosition(s[i].getX() * SIZE,
-                             s[i].getY() * SIZE + TOP_BAR_HEIGHT);
-      window.draw(sprites[2]);
-    }
-
-    updateTime();
-    updateSpeed();
-    updateRecord();
-
-    window.draw(scoreText);
-    window.draw(timeText);
-    window.draw(speedText);
-    window.draw(recordText);
-
-    window.display();
   }
 }
 

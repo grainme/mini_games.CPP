@@ -27,7 +27,7 @@ private:
 public:
   void init_game();
   void loop_game(sf::RenderWindow &window, std::vector<sf::Sprite> &sprites);
-  void tick();
+  void tick(sf::RenderWindow &window);
   void updateScore();
   void updateTime();
   void updateSpeed();

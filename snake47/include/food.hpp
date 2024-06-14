@@ -2,6 +2,7 @@
 #define FOOD_H
 
 class Food {
+public:
   int x;
   int y;
 };
